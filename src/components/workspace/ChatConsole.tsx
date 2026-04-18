@@ -181,7 +181,7 @@ export function ChatConsole({ matter }: { matter: Matter }) {
           {messages.map((m) => <MessageBubble key={m.id} msg={m} onSaveDoc={saveAsDocument} />)}
           {streaming && (
             <MessageBubble
-              msg={{ id: "streaming", agent, role: "assistant", content: streamBuf || "…", created_at: "" }}
+              msg={{ id: "streaming", agent, role: "assistant", content: streamBuf || "…" }}
               streaming
             />
           )}
