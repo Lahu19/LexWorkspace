@@ -14,7 +14,148 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      documents: {
+        Row: {
+          content: string
+          created_at: string
+          doc_type: string
+          id: string
+          matter_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          doc_type?: string
+          id?: string
+          matter_id: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          doc_type?: string
+          id?: string
+          matter_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "matters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matters: {
+        Row: {
+          client: string | null
+          created_at: string
+          description: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          agent: string
+          content: string
+          created_at: string
+          id: string
+          matter_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          agent: string
+          content: string
+          created_at?: string
+          id?: string
+          matter_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          agent?: string
+          content?: string
+          created_at?: string
+          id?: string
+          matter_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_matter_id_fkey"
+            columns: ["matter_id"]
+            isOneToOne: false
+            referencedRelation: "matters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          firm_name: string | null
+          full_name: string | null
+          id: string
+          role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          firm_name?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          firm_name?: string | null
+          full_name?: string | null
+          id?: string
+          role?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
