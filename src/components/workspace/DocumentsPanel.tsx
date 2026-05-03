@@ -1,40 +1,68 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Matter } from "./Workspace";
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import { apiFetch } from "@/lib/api";
 import { AGENTS, type AgentId } from "@/lib/agents";
+import { MARKDOWN_PROSE } from "@/lib/markdown-prose";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Trash2, FileText, Download } from "lucide-react";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 
-type Doc = Tables<"documents">;
+interface Doc {
+  id: string;
+  matter_id: string;
+  title: string;
+  doc_type: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export function DocumentsPanel({ matter }: { matter: Matter }) {
   const [docs, setDocs] = useState<Doc[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const prevMatterId = useRef<string | null>(null);
 
   const fetchDocs = async () => {
-    const { data, error } = await supabase
-      .from("documents")
-      .select("*")
-      .eq("matter_id", matter.id)
-      .order("updated_at", { ascending: false });
-    if (error) { toast.error(error.message); return; }
-    setDocs(data ?? []);
-    setLoading(false);
-    if (!activeId && data && data.length > 0) setActiveId(data[0].id);
+    try {
+      const data = await apiFetch<Doc[]>(`/api/matters/${matter.id}/documents`);
+      setDocs(data);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to load documents");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { setLoading(true); setActiveId(null); fetchDocs(); /* eslint-disable-next-line */ }, [matter.id]);
+  useEffect(() => {
+    setLoading(true);
+    setActiveId(null);
+    void fetchDocs();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matter.id]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (prevMatterId.current !== matter.id) {
+      prevMatterId.current = matter.id;
+      setActiveId(docs[0]?.id ?? null);
+      return;
+    }
+    setActiveId((id) => (id != null ? id : (docs[0]?.id ?? null)));
+  }, [matter.id, docs, loading]);
 
   const remove = async (id: string) => {
-    const { error } = await supabase.from("documents").delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    setDocs((d) => d.filter((x) => x.id !== id));
-    if (activeId === id) setActiveId(null);
+    try {
+      await apiFetch(`/api/documents/${id}`, { method: "DELETE" });
+      setDocs((d) => d.filter((x) => x.id !== id));
+      if (activeId === id) setActiveId(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete document");
+    }
   };
 
   const download = (d: Doc) => {
@@ -51,7 +79,6 @@ export function DocumentsPanel({ matter }: { matter: Matter }) {
 
   return (
     <div className="flex-1 flex min-h-0">
-      {/* Doc list */}
       <div className="w-72 border-r border-border/60 bg-card/30 flex flex-col">
         <div className="px-4 py-3 border-b border-border/60">
           <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Documents</p>
@@ -74,15 +101,20 @@ export function DocumentsPanel({ matter }: { matter: Matter }) {
                 return (
                   <li key={d.id}>
                     <button
+                      type="button"
                       onClick={() => setActiveId(d.id)}
                       className={`w-full text-left px-3 py-2 rounded-md transition ${
                         activeId === d.id ? "bg-primary/10" : "hover:bg-card"
                       }`}
                     >
                       <div className="flex items-start gap-2">
-                        <span className="text-sm shrink-0" style={{ color: `var(${meta.colorVar})` }}>{meta.emoji}</span>
+                        <span className="text-sm shrink-0" style={{ color: `var(${meta.colorVar})` }}>
+                          {meta.emoji}
+                        </span>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">{d.title}</div>
+                          <div className="text-sm font-medium truncate">
+                            {d.title.replace(/\*\*|_|#+|`/g, "").trim()}
+                          </div>
                           <div className="text-[10px] font-mono text-muted-foreground truncate">
                             {new Date(d.updated_at).toLocaleDateString()} · {meta.short}
                           </div>
@@ -97,7 +129,6 @@ export function DocumentsPanel({ matter }: { matter: Matter }) {
         </div>
       </div>
 
-      {/* Doc viewer */}
       <div className="flex-1 flex flex-col min-w-0">
         {!active ? (
           <div className="flex-1 flex items-center justify-center">
@@ -106,7 +137,9 @@ export function DocumentsPanel({ matter }: { matter: Matter }) {
         ) : (
           <>
             <div className="px-6 py-3 border-b border-border/60 flex items-center justify-between gap-3">
-              <h3 className="font-display font-semibold truncate">{active.title}</h3>
+              <h3 className="font-display font-semibold truncate">
+                {active.title.replace(/\*\*|_|#+|`/g, "").trim()}
+              </h3>
               <div className="flex items-center gap-1 shrink-0">
                 <Button variant="ghost" size="sm" onClick={() => download(active)} className="gap-1.5 h-8">
                   <Download className="h-3.5 w-3.5" /> Download
@@ -115,15 +148,15 @@ export function DocumentsPanel({ matter }: { matter: Matter }) {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                  onClick={() => remove(active.id)}
+                  onClick={() => void remove(active.id)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto scrollbar-thin px-8 py-6">
-              <article className="prose prose-sm prose-invert max-w-3xl mx-auto prose-headings:font-display prose-headings:text-foreground prose-p:text-foreground/90 prose-strong:text-foreground prose-code:text-primary prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{active.content}</ReactMarkdown>
+            <div className="flex-1 overflow-y-auto scrollbar-thin px-8 py-8 grid-bg bg-fixed">
+              <article className={cn(MARKDOWN_PROSE, "max-w-3xl mx-auto")}>
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{active.content}</ReactMarkdown>
               </article>
             </div>
           </>

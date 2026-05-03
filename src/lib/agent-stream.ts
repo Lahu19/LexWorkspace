@@ -1,12 +1,15 @@
 import type { AgentId } from "./agents";
-
-const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent`;
+import { API_BASE } from "./api";
 
 export interface ChatMsg {
   role: "user" | "assistant" | "system";
   content: string;
 }
 
+/**
+ * Streams a response from the Express `/api/chat/stream` endpoint.
+ * Calls onDelta with each text chunk, onDone when complete, onError on failure.
+ */
 export async function streamAgent({
   agent,
   messages,
@@ -24,18 +27,18 @@ export async function streamAgent({
   onError: (msg: string) => void;
   signal?: AbortSignal;
 }) {
+  const url = `${API_BASE}/api/chat/stream`;
+
   let resp: Response;
   try {
-    resp = await fetch(FN_URL, {
+    resp = await fetch(url, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ agent, messages, matterContext }),
       signal,
     });
   } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") return;
     onError(e instanceof Error ? e.message : "Network error");
     return;
   }
@@ -43,14 +46,17 @@ export async function streamAgent({
   if (!resp.ok) {
     let msg = `Error ${resp.status}`;
     try {
-      const j = await resp.json();
+      const j = (await resp.json()) as { error?: string };
       if (j.error) msg = j.error;
-    } catch {}
+    } catch {
+      /* ignore */
+    }
     onError(msg);
     return;
   }
+
   if (!resp.body) {
-    onError("No response body");
+    onError("No response body from server");
     return;
   }
 
@@ -72,9 +78,14 @@ export async function streamAgent({
       if (!line || line.startsWith(":")) continue;
       if (!line.startsWith("data: ")) continue;
       const payload = line.slice(6).trim();
-      if (payload === "[DONE]") { done = true; break; }
+      if (payload === "[DONE]") {
+        done = true;
+        break;
+      }
       try {
-        const parsed = JSON.parse(payload);
+        const parsed = JSON.parse(payload) as {
+          choices?: Array<{ delta?: { content?: string } }>;
+        };
         const c = parsed.choices?.[0]?.delta?.content;
         if (c) onDelta(c);
       } catch {
@@ -84,7 +95,7 @@ export async function streamAgent({
     }
   }
 
-  // flush
+  /* flush remaining buffer */
   if (buf.trim()) {
     for (let raw of buf.split("\n")) {
       if (raw.endsWith("\r")) raw = raw.slice(0, -1);
@@ -92,10 +103,14 @@ export async function streamAgent({
       const payload = raw.slice(6).trim();
       if (payload === "[DONE]") continue;
       try {
-        const parsed = JSON.parse(payload);
+        const parsed = JSON.parse(payload) as {
+          choices?: Array<{ delta?: { content?: string } }>;
+        };
         const c = parsed.choices?.[0]?.delta?.content;
         if (c) onDelta(c);
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     }
   }
 

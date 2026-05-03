@@ -10,6 +10,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 interface Props {
   matters: Matter[];
@@ -30,7 +31,9 @@ export function MatterList({ matters, activeId, loading, onSelect, onCreate, onD
     e.preventDefault();
     if (!title.trim()) return;
     onCreate({ title: title.trim(), client: client.trim() || undefined, description: description.trim() || undefined });
-    setTitle(""); setClient(""); setDescription("");
+    setTitle("");
+    setClient("");
+    setDescription("");
     setOpen(false);
   };
 
@@ -39,27 +42,50 @@ export function MatterList({ matters, activeId, loading, onSelect, onCreate, onD
       <div className="px-3 pt-3">
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full justify-start gap-2" variant="secondary">
+            <Button type="button" className="w-full justify-start gap-2" variant="secondary">
               <Plus className="h-4 w-4" /> New matter
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Create a matter</DialogTitle>
               <DialogDescription>A matter groups all chats and documents for one case or engagement.</DialogDescription>
             </DialogHeader>
             <form onSubmit={submit} className="space-y-4">
               <div>
-                <Label htmlFor="t">Title</Label>
-                <Input id="t" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} placeholder="e.g. Acme NDA review" />
+                <Label htmlFor="matter-title">Title</Label>
+                <Input
+                  id="matter-title"
+                  name="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  maxLength={120}
+                  placeholder="e.g. Acme NDA review"
+                  autoComplete="off"
+                />
               </div>
               <div>
-                <Label htmlFor="c">Client</Label>
-                <Input id="c" value={client} onChange={(e) => setClient(e.target.value)} maxLength={120} placeholder="Optional" />
+                <Label htmlFor="matter-client">Client</Label>
+                <Input
+                  id="matter-client"
+                  value={client}
+                  onChange={(e) => setClient(e.target.value)}
+                  maxLength={120}
+                  placeholder="Optional"
+                  autoComplete="off"
+                />
               </div>
               <div>
-                <Label htmlFor="d">Brief / context</Label>
-                <Textarea id="d" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={4} placeholder="Background the agents should know about this matter…" />
+                <Label htmlFor="matter-desc">Brief / context</Label>
+                <Textarea
+                  id="matter-desc"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={2000}
+                  rows={4}
+                  placeholder="Background the agents should know about this matter…"
+                />
               </div>
               <DialogFooter>
                 <Button type="submit">Create</Button>
@@ -84,46 +110,59 @@ export function MatterList({ matters, activeId, loading, onSelect, onCreate, onD
         ) : (
           <ul className="space-y-0.5">
             {matters.map((m) => (
-              <li key={m.id}>
-                <div
-                  className={`group flex items-center gap-2 rounded-md px-3 py-2 cursor-pointer transition ${
-                    activeId === m.id ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-card hover:text-foreground"
-                  }`}
+              <li key={m.id} className="flex items-stretch gap-1 rounded-md">
+                <button
+                  type="button"
                   onClick={() => onSelect(m.id)}
+                  className={cn(
+                    "flex flex-1 min-w-0 items-center gap-2 rounded-md px-3 py-2 text-left transition",
+                    activeId === m.id
+                      ? "bg-primary/10 text-foreground"
+                      : "text-muted-foreground hover:bg-card hover:text-foreground",
+                  )}
                 >
-                  <div
-                    className={`h-1.5 w-1.5 rounded-full shrink-0 ${activeId === m.id ? "bg-primary" : "bg-muted-foreground/40"}`}
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 shrink-0 rounded-full",
+                      activeId === m.id ? "bg-primary" : "bg-muted-foreground/40",
+                    )}
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{m.title}</div>
-                    {m.client && <div className="text-[10px] font-mono truncate opacity-70">{m.client}</div>}
-                  </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="opacity-0 group-hover:opacity-100 transition p-1 rounded hover:bg-destructive/20 hover:text-destructive"
-                        title="Delete"
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-medium truncate">{m.title}</span>
+                    {m.client ? (
+                      <span className="block text-[10px] font-mono truncate opacity-70">{m.client}</span>
+                    ) : null}
+                  </span>
+                </button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="shrink-0 self-center rounded-md p-2 text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
+                      title="Delete matter"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete matter?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This removes the matter and its chat and documents for this browser session only.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        type="button"
+                        onClick={() => onDelete(m.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete matter?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete the matter, all its chat history, and documents.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDelete(m.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </li>
             ))}
           </ul>

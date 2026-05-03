@@ -1,4 +1,9 @@
 project_id = "travvztthtyhpmnfqndm"
 
+# Required for `signInAnonymously()` when using Supabase CLI (`supabase start`).
+# For hosted projects, also turn on Authentication → Providers → Anonymous in the dashboard.
+[auth]
+enable_anonymous_sign_ins = true
+
 [functions.agent]
 verify_jwt = false

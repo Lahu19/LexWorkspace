@@ -1,6 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { useAuth } from "@/lib/auth";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AGENT_LIST } from "@/lib/agents";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Scale, Shield, Sparkles } from "lucide-react";
@@ -10,13 +8,6 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && user) navigate({ to: "/app" });
-  }, [user, loading, navigate]);
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
@@ -27,8 +18,8 @@ function Landing() {
             <span>lex<span className="text-primary">.</span>workforce</span>
           </Link>
           <nav className="flex items-center gap-2">
-            <Link to="/auth"><Button variant="ghost" size="sm">Sign in</Button></Link>
-            <Link to="/auth" search={{ mode: "signup" }}><Button size="sm">Get started</Button></Link>
+            <Link to="/app"><Button variant="ghost" size="sm">Workspace</Button></Link>
+            <Link to="/app"><Button size="sm">Get started</Button></Link>
           </nav>
         </div>
       </header>
@@ -51,18 +42,18 @@ function Landing() {
               working in one collaborative console.
             </p>
             <div className="mt-10 flex flex-wrap gap-3">
-              <Link to="/auth" search={{ mode: "signup" }}>
+              <Link to="/app">
                 <Button size="lg" className="glow-emerald">
                   Open the workspace <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/auth">
-                <Button size="lg" variant="outline">Sign in</Button>
+              <Link to="/app">
+                <Button size="lg" variant="outline">Open console</Button>
               </Link>
             </div>
 
             <div className="mt-10 flex flex-wrap items-center gap-6 text-xs text-muted-foreground font-mono">
-              <span className="flex items-center gap-2"><Shield className="h-3.5 w-3.5" /> Per-user RLS isolation</span>
+              <span className="flex items-center gap-2"><Shield className="h-3.5 w-3.5" /> Session-local demo data</span>
               <span className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> Streaming responses</span>
               <span className="flex items-center gap-2"><Scale className="h-3.5 w-3.5" /> Cite-aware research</span>
             </div>
