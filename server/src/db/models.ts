@@ -2,7 +2,7 @@ import mongoose, { Schema, type Document } from "mongoose";
 import { randomUUID } from "crypto";
 
 /* ─────────────────────────── Matter ─────────────────────────── */
-export interface IMatter extends Document {
+export interface IMatter {
   _id: string;
   user_id: string;
   title: string;
@@ -29,7 +29,7 @@ const MatterSchema = new Schema<IMatter>(
 );
 
 /* ─────────────────────────── Message ─────────────────────────── */
-export interface IMessage extends Document {
+export interface IMessage {
   _id: string;
   matter_id: string;
   user_id: string;
@@ -55,7 +55,7 @@ const MessageSchema = new Schema<IMessage>(
 );
 
 /* ─────────────────────────── LegalDocument ─────────────────────────── */
-export interface ILegalDocument extends Document {
+export interface ILegalDocument {
   _id: string;
   matter_id: string;
   user_id: string;
@@ -95,8 +95,8 @@ function toJSON(doc: unknown): unknown {
 
 // Apply toJSON transform to all schemas
 [MatterSchema, MessageSchema, LegalDocumentSchema].forEach((s) => {
-  s.set("toJSON", {
-    transform: (_doc: unknown, ret: Record<string, unknown>) => {
+  (s as Schema<any>).set("toJSON", {
+    transform: (_doc: any, ret: any) => {
       ret["id"] = ret["_id"];
       delete ret["_id"];
       delete ret["__v"];
